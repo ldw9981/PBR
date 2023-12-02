@@ -145,6 +145,9 @@ void Application::keyCallback(GLFWwindow* window, int key, int scancode, int act
 		case GLFW_KEY_F3:
 			light = &self->m_sceneSettings.lights[2];
 			break;
+		case GLFW_KEY_F4:
+			self->m_sceneSettings.useIBL = self->m_sceneSettings.useIBL ? 0 : 1; // toggle
+			break;
 		}
 
 		if(light) {

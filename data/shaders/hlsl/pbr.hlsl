@@ -27,7 +27,8 @@ cbuffer ShadingConstants : register(b0)
 		float3 direction;
 		float3 radiance;
 	} lights[NumLights];
-	float3 eyePosition;
+	float3 eyePosition;	
+    float4 useIBL;
 };
 
 struct VertexShaderInput
@@ -176,6 +177,7 @@ float4 main_ps(PixelShaderInput pin) : SV_Target
 
 	// Ambient lighting (IBL).
 	float3 ambientLighting;
+    if (useIBL.r > 0)		
 	{
 		// Sample diffuse irradiance at normal direction.
 		float3 irradiance = irradianceTexture.Sample(defaultSampler, N).rgb;

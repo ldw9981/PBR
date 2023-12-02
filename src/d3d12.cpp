@@ -41,6 +41,7 @@ struct ShadingCB
 		glm::vec4 radiance;
 	} lights[SceneSettings::NumLights];
 	glm::vec4 eyePosition;
+	glm::vec4 useIBL;
 };
 
 GLFWwindow* Renderer::initialize(int width, int height, int maxSamples)

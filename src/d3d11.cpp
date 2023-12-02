@@ -41,6 +41,7 @@ struct ShadingCB
 		glm::vec4 radiance;
 	} lights[SceneSettings::NumLights];
 	glm::vec4 eyePosition;
+	glm::vec4 useIBL;
 };
 
 GLFWwindow* Renderer::initialize(int width, int height, int maxSamples)
@@ -314,6 +315,7 @@ void Renderer::render(GLFWwindow* window, const ViewSettings& view, const SceneS
 	{
 		ShadingCB shadingConstants;
 		shadingConstants.eyePosition = glm::vec4{eyePosition, 0.0f};
+		shadingConstants.useIBL.r = scene.useIBL ? 1.0f : 0;
 		for(int i=0; i<SceneSettings::NumLights; ++i) {
 			const SceneSettings::Light& light = scene.lights[i];
 			shadingConstants.lights[i].direction = glm::vec4{light.direction, 0.0f};
