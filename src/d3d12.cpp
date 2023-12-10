@@ -582,6 +582,7 @@ void Renderer::render(GLFWwindow* window, const ViewSettings& view, const SceneS
 	m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		
 	// Draw skybox.
+	if(scene.useIBL)
 	{
 		m_commandList->SetGraphicsRootSignature(m_skyboxRootSignature.Get());
 		m_commandList->SetGraphicsRootDescriptorTable(0, transformCBV.cbv.gpuHandle);

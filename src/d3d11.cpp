@@ -330,7 +330,9 @@ void Renderer::render(GLFWwindow* window, const ViewSettings& view, const SceneS
 	}
 
 	// Prepare framebuffer for rendering.
+	const float clear_color_with_alpha[] = { 1.0f, 1.0f, 1.0f, 1.0f };
 	m_context->OMSetRenderTargets(1, m_framebuffer.rtv.GetAddressOf(), m_framebuffer.dsv.Get());
+	m_context->ClearRenderTargetView(m_framebuffer.rtv.Get(), clear_color_with_alpha);
 	m_context->ClearDepthStencilView(m_framebuffer.dsv.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 	
 	// Set known pipeline state.
@@ -340,15 +342,19 @@ void Renderer::render(GLFWwindow* window, const ViewSettings& view, const SceneS
 	m_context->PSSetConstantBuffers(0, 1, m_shadingCB.GetAddressOf());
 
 	// Draw skybox.
-	m_context->IASetInputLayout(m_skyboxProgram.inputLayout.Get());
-	m_context->IASetVertexBuffers(0, 1, m_skybox.vertexBuffer.GetAddressOf(), &m_skybox.stride, &m_skybox.offset);
-	m_context->IASetIndexBuffer(m_skybox.indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-	m_context->VSSetShader(m_skyboxProgram.vertexShader.Get(), nullptr, 0);
-	m_context->PSSetShader(m_skyboxProgram.pixelShader.Get(), nullptr, 0);
-	m_context->PSSetShaderResources(0, 1, m_envTexture.srv.GetAddressOf());
-	m_context->PSSetSamplers(0, 1, m_defaultSampler.GetAddressOf());
-	m_context->OMSetDepthStencilState(m_skyboxDepthStencilState.Get(), 0);
-	m_context->DrawIndexed(m_skybox.numElements, 0, 0);
+	if (scene.useIBL)
+	{
+		m_context->IASetInputLayout(m_skyboxProgram.inputLayout.Get());
+		m_context->IASetVertexBuffers(0, 1, m_skybox.vertexBuffer.GetAddressOf(), &m_skybox.stride, &m_skybox.offset);
+		m_context->IASetIndexBuffer(m_skybox.indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+		m_context->VSSetShader(m_skyboxProgram.vertexShader.Get(), nullptr, 0);
+		m_context->PSSetShader(m_skyboxProgram.pixelShader.Get(), nullptr, 0);
+		m_context->PSSetShaderResources(0, 1, m_envTexture.srv.GetAddressOf());
+		m_context->PSSetSamplers(0, 1, m_defaultSampler.GetAddressOf());
+		m_context->OMSetDepthStencilState(m_skyboxDepthStencilState.Get(), 0);
+		m_context->DrawIndexed(m_skybox.numElements, 0, 0);
+	}
+
 
 	// Draw PBR model.
 	ID3D11ShaderResourceView* const pbrModelSRVs[] = {
