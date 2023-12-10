@@ -9,8 +9,8 @@
 #include "application.hpp"
 
 namespace {
-	const int DisplaySizeX = 1024;
-	const int DisplaySizeY = 1024;
+	const int DisplaySizeX = 1920;
+	const int DisplaySizeY = 1080;
 	const int DisplaySamples = 16;
 
 	const float ViewDistance = 150.0f;

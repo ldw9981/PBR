@@ -330,7 +330,7 @@ void Renderer::render(GLFWwindow* window, const ViewSettings& view, const SceneS
 	}
 
 	// Prepare framebuffer for rendering.
-	const float clear_color_with_alpha[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	const float clear_color_with_alpha[] = { 0.0f, 0.0f, 0.0f, 0.0f };
 	m_context->OMSetRenderTargets(1, m_framebuffer.rtv.GetAddressOf(), m_framebuffer.dsv.Get());
 	m_context->ClearRenderTargetView(m_framebuffer.rtv.Get(), clear_color_with_alpha);
 	m_context->ClearDepthStencilView(m_framebuffer.dsv.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
@@ -371,6 +371,7 @@ void Renderer::render(GLFWwindow* window, const ViewSettings& view, const SceneS
 		m_spBRDF_Sampler.Get(),
 	};
 
+	
 	m_context->IASetInputLayout(m_pbrProgram.inputLayout.Get());
 	m_context->IASetVertexBuffers(0, 1, m_pbrModel.vertexBuffer.GetAddressOf(), &m_pbrModel.stride, &m_pbrModel.offset);
 	m_context->IASetIndexBuffer(m_pbrModel.indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
@@ -380,7 +381,7 @@ void Renderer::render(GLFWwindow* window, const ViewSettings& view, const SceneS
 	m_context->PSSetSamplers(0, 2, pbrModelSamplers);
 	m_context->OMSetDepthStencilState(m_defaultDepthStencilState.Get(), 0);
 	m_context->DrawIndexed(m_pbrModel.numElements, 0, 0);
-
+	
 	// Resolve multisample framebuffer.
 	resolveFrameBuffer(m_framebuffer, m_resolveFramebuffer, DXGI_FORMAT_R16G16B16A16_FLOAT);
 
@@ -392,7 +393,7 @@ void Renderer::render(GLFWwindow* window, const ViewSettings& view, const SceneS
 	m_context->PSSetShaderResources(0, 1, m_resolveFramebuffer.srv.GetAddressOf());
 	m_context->PSSetSamplers(0, 1, m_computeSampler.GetAddressOf());
 	m_context->Draw(3, 0);
-
+	
 	m_swapChain->Present(1, 0);
 }
 	
