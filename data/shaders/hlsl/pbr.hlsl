@@ -167,7 +167,7 @@ float4 main_ps(PixelShaderInput pin) : SV_Target
 		// Lambert diffuse BRDF.
 		// We don't scale by 1/PI for lighting & material units to be more convenient.
 		// See: https://seblagarde.wordpress.com/2012/01/08/pi-or-not-to-pi-in-game-lighting-equation/
-		float3 diffuseBRDF = kd * albedo;
+		float3 diffuseBRDF = kd * albedo / PI;
        
 		
 		// Cook-Torrance specular microfacet BRDF.
