@@ -154,7 +154,7 @@ float4 main_ps(PixelShaderInput pin) : SV_Target
 		// Calculate Fresnel term for direct lighting. 
 		float3 F  = fresnelSchlick(F0, max(0.0, dot(Lh, Lo)));
 		// Calculate normal distribution for specular BRDF.
-		float D = ndfGGX(cosLh, roughness);
+        float D = ndfGGX(cosLh, max(Epsilon, roughness));		// 러프니스 0 이되면 값이0이 되므로 0이면 최소값사용
 		// Calculate geometric attenuation for specular BRDF.
 		float G = gaSchlickGGX(cosLi, cosLo, roughness);
 
