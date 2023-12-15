@@ -102,6 +102,7 @@ private:
 	ComPtr<ID3D11DeviceContext> m_context;
 	ComPtr<IDXGISwapChain> m_swapChain;
 	ComPtr<ID3D11RenderTargetView> m_backBufferRTV;
+	ComPtr<ID3D11DepthStencilView> m_defaultDSV;
 	
 	FrameBuffer m_framebuffer;
 	FrameBuffer m_resolveFramebuffer;

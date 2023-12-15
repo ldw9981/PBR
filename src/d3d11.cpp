@@ -104,6 +104,39 @@ GLFWwindow* Renderer::initialize(int width, int height, int maxSamples)
 		}
 	}
 
+	
+
+	{
+		D3D11_TEXTURE2D_DESC descDepth = {};
+		descDepth.Width = width;
+		descDepth.Height = height;
+		descDepth.MipLevels = 1;
+		descDepth.ArraySize = 1;
+		descDepth.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		descDepth.SampleDesc.Count = 1;
+		descDepth.SampleDesc.Quality = 0;
+		descDepth.Usage = D3D11_USAGE_DEFAULT;
+		descDepth.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+		descDepth.CPUAccessFlags = 0;
+		descDepth.MiscFlags = 0;
+
+		ComPtr<ID3D11Texture2D> textureDepthStencil;
+
+		if (FAILED(m_device->CreateTexture2D(&descDepth, nullptr, &textureDepthStencil))) {
+			throw std::runtime_error("Failed to create 2D texture");
+		}
+
+		// Create the depth stencil view
+		D3D11_DEPTH_STENCIL_VIEW_DESC descDSV = {};
+		descDSV.Format = descDepth.Format;
+		descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+		descDSV.Texture2D.MipSlice = 0;
+		
+		if (FAILED(m_device->CreateDepthStencilView(textureDepthStencil.Get(), &descDSV, &m_defaultDSV))) {
+			throw std::runtime_error("Failed to create window back buffer render target view");
+		}
+	}
+
 	// Determine maximum supported MSAA level.
 	UINT samples;
 	for(samples = maxSamples; samples > 1; samples /= 2) {
@@ -302,25 +335,26 @@ void Renderer::render(GLFWwindow* window, const ViewSettings& view, const SceneS
 	const glm::mat4 viewMatrix = glm::translate(glm::mat4{ 1.0f }, { 0.0f, 0.0f, -view.distance }) * viewRotationMatrix;
 	const glm::vec3 eyePosition = glm::inverse(viewMatrix)[3];
 
+
 	// Update transform constant buffer (for vertex shaders).
 	{
 		TransformCB transformConstants;
 		transformConstants.viewProjectionMatrix = projectionMatrix * viewMatrix;
-		transformConstants.skyProjectionMatrix  = projectionMatrix * viewRotationMatrix;
-		transformConstants.sceneRotationMatrix  = sceneRotationMatrix;
+		transformConstants.skyProjectionMatrix = projectionMatrix * viewRotationMatrix;
+		transformConstants.sceneRotationMatrix = sceneRotationMatrix;
 		m_context->UpdateSubresource(m_transformCB.Get(), 0, nullptr, &transformConstants, 0, 0);
 	}
 
 	// Update shading constant buffer (for pixel shader).
 	{
 		ShadingCB shadingConstants;
-		shadingConstants.eyePosition = glm::vec4{eyePosition, 0.0f};
+		shadingConstants.eyePosition = glm::vec4{ eyePosition, 0.0f };
 		shadingConstants.useIBL.r = scene.useIBL ? 1.0f : 0;
-		for(int i=0; i<SceneSettings::NumLights; ++i) {
+		for (int i = 0; i < SceneSettings::NumLights; ++i) {
 			const SceneSettings::Light& light = scene.lights[i];
-			shadingConstants.lights[i].direction = glm::vec4{light.direction, 0.0f};
-			if(light.enabled) {
-				shadingConstants.lights[i].radiance = glm::vec4{light.radiance, 0.0f};
+			shadingConstants.lights[i].direction = glm::vec4{ light.direction, 0.0f };
+			if (light.enabled) {
+				shadingConstants.lights[i].radiance = glm::vec4{ light.radiance, 0.0f };
 			}
 			else {
 				shadingConstants.lights[i].radiance = glm::vec4{};
@@ -329,10 +363,25 @@ void Renderer::render(GLFWwindow* window, const ViewSettings& view, const SceneS
 		m_context->UpdateSubresource(m_shadingCB.Get(), 0, nullptr, &shadingConstants, 0, 0);
 	}
 
-	// Prepare framebuffer for rendering.
-	m_context->OMSetRenderTargets(1, m_framebuffer.rtv.GetAddressOf(), m_framebuffer.dsv.Get());
-	m_context->ClearDepthStencilView(m_framebuffer.dsv.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+	if (scene.useTonemappingAndGamma)
+	{
+		// Prepare framebuffer for rendering.
+		const float clear_color_with_alpha[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+		m_context->OMSetRenderTargets(1, m_framebuffer.rtv.GetAddressOf(), m_framebuffer.dsv.Get());
+		m_context->ClearRenderTargetView(m_framebuffer.rtv.Get(), clear_color_with_alpha);
+		m_context->ClearDepthStencilView(m_framebuffer.dsv.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+	}
+	else
+	{
+		// Prepare framebuffer for rendering.
+		const float clear_color_with_alpha[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+		m_context->OMSetRenderTargets(1, m_backBufferRTV.GetAddressOf(), m_defaultDSV.Get());
+		m_context->ClearRenderTargetView(m_backBufferRTV.Get(), clear_color_with_alpha);
+		m_context->ClearDepthStencilView(m_defaultDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+		m_context->OMSetDepthStencilState(m_defaultDepthStencilState.Get(), 0);
+	}
 	
+
 	// Set known pipeline state.
 	m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	m_context->RSSetState(m_defaultRasterizerState.Get());
@@ -340,15 +389,19 @@ void Renderer::render(GLFWwindow* window, const ViewSettings& view, const SceneS
 	m_context->PSSetConstantBuffers(0, 1, m_shadingCB.GetAddressOf());
 
 	// Draw skybox.
-	m_context->IASetInputLayout(m_skyboxProgram.inputLayout.Get());
-	m_context->IASetVertexBuffers(0, 1, m_skybox.vertexBuffer.GetAddressOf(), &m_skybox.stride, &m_skybox.offset);
-	m_context->IASetIndexBuffer(m_skybox.indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-	m_context->VSSetShader(m_skyboxProgram.vertexShader.Get(), nullptr, 0);
-	m_context->PSSetShader(m_skyboxProgram.pixelShader.Get(), nullptr, 0);
-	m_context->PSSetShaderResources(0, 1, m_envTexture.srv.GetAddressOf());
-	m_context->PSSetSamplers(0, 1, m_defaultSampler.GetAddressOf());
-	m_context->OMSetDepthStencilState(m_skyboxDepthStencilState.Get(), 0);
-	m_context->DrawIndexed(m_skybox.numElements, 0, 0);
+	if (scene.useIBL)
+	{
+		m_context->IASetInputLayout(m_skyboxProgram.inputLayout.Get());
+		m_context->IASetVertexBuffers(0, 1, m_skybox.vertexBuffer.GetAddressOf(), &m_skybox.stride, &m_skybox.offset);
+		m_context->IASetIndexBuffer(m_skybox.indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+		m_context->VSSetShader(m_skyboxProgram.vertexShader.Get(), nullptr, 0);
+		m_context->PSSetShader(m_skyboxProgram.pixelShader.Get(), nullptr, 0);
+		m_context->PSSetShaderResources(0, 1, m_envTexture.srv.GetAddressOf());
+		m_context->PSSetSamplers(0, 1, m_defaultSampler.GetAddressOf());
+		m_context->OMSetDepthStencilState(m_skyboxDepthStencilState.Get(), 0);
+		m_context->DrawIndexed(m_skybox.numElements, 0, 0);
+	}
+
 
 	// Draw PBR model.
 	ID3D11ShaderResourceView* const pbrModelSRVs[] = {
@@ -375,18 +428,20 @@ void Renderer::render(GLFWwindow* window, const ViewSettings& view, const SceneS
 	m_context->OMSetDepthStencilState(m_defaultDepthStencilState.Get(), 0);
 	m_context->DrawIndexed(m_pbrModel.numElements, 0, 0);
 
-	// Resolve multisample framebuffer.
-	resolveFrameBuffer(m_framebuffer, m_resolveFramebuffer, DXGI_FORMAT_R16G16B16A16_FLOAT);
+	if (scene.useTonemappingAndGamma)
+	{
+		// Resolve multisample framebuffer.
+		resolveFrameBuffer(m_framebuffer, m_resolveFramebuffer, DXGI_FORMAT_R16G16B16A16_FLOAT);
 
-	// Draw a full screen triangle for postprocessing/tone mapping.
-	m_context->OMSetRenderTargets(1, m_backBufferRTV.GetAddressOf(), nullptr);
-	m_context->IASetInputLayout(nullptr);
-	m_context->VSSetShader(m_tonemapProgram.vertexShader.Get(), nullptr, 0);
-	m_context->PSSetShader(m_tonemapProgram.pixelShader.Get(), nullptr, 0);
-	m_context->PSSetShaderResources(0, 1, m_resolveFramebuffer.srv.GetAddressOf());
-	m_context->PSSetSamplers(0, 1, m_computeSampler.GetAddressOf());
-	m_context->Draw(3, 0);
-
+		// Draw a full screen triangle for postprocessing/tone mapping.
+		m_context->OMSetRenderTargets(1, m_backBufferRTV.GetAddressOf(), nullptr);
+		m_context->IASetInputLayout(nullptr);
+		m_context->VSSetShader(m_tonemapProgram.vertexShader.Get(), nullptr, 0);
+		m_context->PSSetShader(m_tonemapProgram.pixelShader.Get(), nullptr, 0);
+		m_context->PSSetShaderResources(0, 1, m_resolveFramebuffer.srv.GetAddressOf());
+		m_context->PSSetSamplers(0, 1, m_computeSampler.GetAddressOf());
+		m_context->Draw(3, 0);	
+	}
 	m_swapChain->Present(1, 0);
 }
 	

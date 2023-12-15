@@ -83,7 +83,7 @@ float gaSchlickGGX(float cosLi, float cosLo, float roughness)
 	return gaSchlickG1(cosLi, k) * gaSchlickG1(cosLo, k);
 }
 
-// Shlick's approximation of the Fresnel factor.
+// Shlick's approximation of the Fresnel factor. 최소값 F0 , 최대값은 1.0,1.0,1.0
 float3 fresnelSchlick(float3 F0, float cosTheta)
 {
 	return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
@@ -139,7 +139,8 @@ float4 main_ps(PixelShaderInput pin) : SV_Target
 
 	// Direct lighting calculation for analytical lights.
 	float3 directLighting = 0.0;
-	for(uint i=0; i<NumLights; ++i)
+    for (uint i = 0; i < NumLights; ++i)
+   
 	{
 		float3 Li = -lights[i].direction;
 		float3 Lradiance = lights[i].radiance;
@@ -152,7 +153,7 @@ float4 main_ps(PixelShaderInput pin) : SV_Target
 		float cosLh = max(0.0, dot(N, Lh));
 
 		// Calculate Fresnel term for direct lighting. 
-		float3 F  = fresnelSchlick(F0, max(0.0, dot(Lh, Lo)));
+		float3 F  = fresnelSchlick(F0, max(0.0, dot(Lh, Lo)));  //최소값 F0 , 최대값은 1.0,1.0,1.0
 		// Calculate normal distribution for specular BRDF.
         float D = ndfGGX(cosLh, max(0.01, roughness));		// 러프니스 0 이되면 값이0이 되므로 0이면 최소값사용
 		// Calculate geometric attenuation for specular BRDF.
@@ -166,14 +167,15 @@ float4 main_ps(PixelShaderInput pin) : SV_Target
 		// Lambert diffuse BRDF.
 		// We don't scale by 1/PI for lighting & material units to be more convenient.
 		// See: https://seblagarde.wordpress.com/2012/01/08/pi-or-not-to-pi-in-game-lighting-equation/
-		float3 diffuseBRDF = kd * albedo;
-
+		float3 diffuseBRDF = kd * albedo / PI;
+       
+		
 		// Cook-Torrance specular microfacet BRDF.
 		float3 specularBRDF = (F * D * G) / max(Epsilon, 4.0 * cosLi * cosLo);
-
+		
 		// Total contribution for this light.
-		directLighting += (diffuseBRDF + specularBRDF) * Lradiance * cosLi;
-	}
+        directLighting += (diffuseBRDF + specularBRDF) * Lradiance * cosLi;
+    }
 
 	// Ambient lighting (IBL).
 	float3 ambientLighting;
@@ -208,6 +210,8 @@ float4 main_ps(PixelShaderInput pin) : SV_Target
 		ambientLighting = diffuseIBL + specularIBL;
 	}
 
+   
 	// Final fragment color.
-	return float4(directLighting + ambientLighting, 1.0);
+   // return float4(directLighting, 1.0);
+    return float4(directLighting + ambientLighting, 1.0);
 }

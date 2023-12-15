@@ -9,8 +9,8 @@
 #include "application.hpp"
 
 namespace {
-	const int DisplaySizeX = 1024;
-	const int DisplaySizeY = 1024;
+	const int DisplaySizeX = 1920;
+	const int DisplaySizeY = 1080;
 	const int DisplaySamples = 16;
 
 	const float ViewDistance = 150.0f;
@@ -147,6 +147,9 @@ void Application::keyCallback(GLFWwindow* window, int key, int scancode, int act
 			break;
 		case GLFW_KEY_F4:
 			self->m_sceneSettings.useIBL = self->m_sceneSettings.useIBL ? 0 : 1; // toggle
+			break;
+		case GLFW_KEY_F5:
+			self->m_sceneSettings.useTonemappingAndGamma = self->m_sceneSettings.useTonemappingAndGamma ? 0 : 1; // toggle
 			break;
 		}
 
