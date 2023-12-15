@@ -119,7 +119,7 @@ float4 main_ps(PixelShaderInput pin) : SV_Target
 	// Sample input textures to get shading model params.
 	float3 albedo = albedoTexture.Sample(defaultSampler, pin.texcoord).rgb;
 	float metalness = metalnessTexture.Sample(defaultSampler, pin.texcoord).r;
-	float roughness = roughnessTexture.Sample(defaultSampler, pin.texcoord).r;
+    float roughness = roughnessTexture.Sample(defaultSampler, pin.texcoord).r;
 
 	// Outgoing light direction (vector from world-space fragment position to the "eye").
 	float3 Lo = normalize(eyePosition - pin.position);
@@ -154,7 +154,7 @@ float4 main_ps(PixelShaderInput pin) : SV_Target
 		// Calculate Fresnel term for direct lighting. 
 		float3 F  = fresnelSchlick(F0, max(0.0, dot(Lh, Lo)));
 		// Calculate normal distribution for specular BRDF.
-        float D = ndfGGX(cosLh, max(Epsilon, roughness));		// 러프니스 0 이되면 값이0이 되므로 0이면 최소값사용
+        float D = ndfGGX(cosLh, max(0.01, roughness));		// 러프니스 0 이되면 값이0이 되므로 0이면 최소값사용
 		// Calculate geometric attenuation for specular BRDF.
 		float G = gaSchlickGGX(cosLi, cosLo, roughness);
 
