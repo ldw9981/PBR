@@ -162,6 +162,9 @@ float4 main_ps(PixelShaderInput pin) : SV_Target
 		// Diffuse scattering happens due to light being refracted multiple times by a dielectric medium.
 		// Metals on the other hand either reflect or absorb energy, so diffuse contribution is always zero.
 		// To be energy conserving we must scale diffuse BRDF contribution based on Fresnel factor & metalness.
+		// 금속성이 1이면 침투가 없으므로 표면산란이 일어나지 않아 표면산란의 색상은 0,0,0 으로 처리
+		// 금속성이 0이면 반사의 나머지 비율만큼 표면산란의 색상 표현이 가능하다.
+		// 금속성은 1픽셀에 해당되는 미세 표면의 분포를 의미하므로 보간을 상요하여 중간값을 처리한다.
 		float3 kd = lerp(float3(1, 1, 1) - F, float3(0, 0, 0), metalness);
 
 		// Lambert diffuse BRDF.
