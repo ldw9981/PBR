@@ -20,8 +20,8 @@ struct SceneSettings
 {
 	float pitch = 0.0f;
 	float yaw = 0.0f;
-	int useIBL = 1;
-	int useTonemappingAndGamma = 1;
+	int useIBL = 0;
+	int useTonemappingAndGamma = 0;
 
 	static const int NumLights = 3;
 	struct Light {

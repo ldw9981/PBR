@@ -210,8 +210,6 @@ float4 main_ps(PixelShaderInput pin) : SV_Target
 		ambientLighting = diffuseIBL + specularIBL;
 	}
 
-   
-	// Final fragment color.
-   // return float4(directLighting, 1.0);
-    return float4(directLighting + ambientLighting, 1.0);
+//    return float4(directLighting + ambientLighting, 1.0);
+    return float4(pow(float3(directLighting + ambientLighting), 1.0 / 2.2), 1.0);
 }
