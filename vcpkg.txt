@@ -1,0 +1,11 @@
+git pull
+bootstrap-vcpkg             //처음 비주얼 스튜디오 경로인식
+vcpkg integrate install      //비주얼 스튜디오에 vcpkg 설정
+
+----
+vcpkg install assimp
+vcpkg install vulkan
+vcpkg install glfw3
+
+
+솔루션에서 glsl 파일은 지웁니다.
