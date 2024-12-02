@@ -200,11 +200,12 @@ float4 main_ps(PixelShaderInput pin) : SV_Target
 		float3 diffuseIBL = kd * albedo * irradiance;
 
 		// Sample pre-filtered specular reflection environment at correct mipmap level.
-		uint specularTextureLevels = querySpecularTextureLevels();
-		float3 specularIrradiance = specularTexture.SampleLevel(defaultSampler, Lr, roughness * specularTextureLevels).rgb;
+		uint specularTextureLevels = querySpecularTextureLevels();  //  텍스쳐의 최대 LOD 개수를 구한다.	
+		float3 specularIrradiance = specularTexture.SampleLevel(defaultSampler, Lr, roughness * specularTextureLevels).rgb; 
+		// 시선->노말 반사벡터로 샘플링하여 거칠기로 LOD적용된 specularIrradiance 를 구한다.
 
 		// Split-sum approximation factors for Cook-Torrance specular BRDF.
-		float2 specularBRDF = specularBRDF_LUT.Sample(spBRDF_Sampler, float2(cosLo, roughness)).rg;
+		float2 specularBRDF = specularBRDF_LUT.Sample(spBRDF_Sampler, float2(cosLo, roughness)).rg; // LUT로 빠른 근사값 float2 을 구한다. 무슨값일까.
 
 		// Total specular IBL contribution.
 		float3 specularIBL = (F0 * specularBRDF.x + specularBRDF.y) * specularIrradiance;
